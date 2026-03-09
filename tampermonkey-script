@@ -1,0 +1,51 @@
+// ==UserScript==
+// @name         Gmail Auto Show BCC (Shortcut Version)
+// @namespace    http://tampermonkey.net/
+// @version      1.2
+// @description  自動在 Gmail 撰寫新郵件時，透過快捷鍵展開 Bcc (密件副本) 欄位，避免彈出聯絡人清單
+// @author       You
+// @match        https://mail.google.com/*
+// @icon         https://www.google.com/s2/favicons?sz=64&domain=mail.google.com
+// @grant        none
+// ==/UserScript==
+
+(function() {
+    'use strict';
+
+    // 判斷是否為 Mac 系統，以決定要使用 Cmd 還是 Ctrl
+    const isMac = navigator.userAgent.includes('Mac OS X');
+
+    const observer = new MutationObserver(() => {
+        // 一樣透過尋找 Bcc 按鈕來判斷撰寫視窗是否剛被打開，並加上已處理標記
+        const bccButtons = document.querySelectorAll('span[aria-label*="Bcc"][role="link"]:not([data-auto-bcc-handled="true"]), span[aria-label*="密件副本"][role="link"]:not([data-auto-bcc-handled="true"])');
+
+        bccButtons.forEach(btn => {
+            btn.setAttribute('data-auto-bcc-handled', 'true');
+
+            // 給 Gmail 一點點時間 (200毫秒) 完成視窗的動畫與焦點初始化
+            setTimeout(() => {
+                // 建立一個 Ctrl+Shift+B (或 Cmd+Shift+B) 的鍵盤事件
+                const keydownEvent = new KeyboardEvent('keydown', {
+                    key: 'b',
+                    code: 'KeyB',
+                    keyCode: 66,
+                    which: 66,
+                    ctrlKey: !isMac,
+                    metaKey: isMac,
+                    shiftKey: true,
+                    bubbles: true,
+                    cancelable: true
+                });
+
+                // 將組合鍵發送給目前網頁的焦點元素 (通常是新郵件的「收件者」輸入框)
+                const target = document.activeElement || document.body;
+                target.dispatchEvent(keydownEvent);
+            }, 200);
+        });
+    });
+
+    observer.observe(document.body, {
+        childList: true,
+        subtree: true
+    });
+})();
